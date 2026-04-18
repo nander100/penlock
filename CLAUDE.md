@@ -19,6 +19,10 @@ PenLock/
       RESEARCH.md           # Background on algorithms and hardware choices
       ROADMAP.md            # Milestones and exit criteria
       STATUS.md             # Current state, decisions log
+      members/
+        ykim/NOTES.md       # ykim's personal working notes
+        atotah/NOTES.md     # atotah's personal working notes
+        alin/NOTES.md       # alin's personal working notes
   CLAUDE.md                 # This file
   README.md                 # Public-facing project overview
 ```
@@ -45,6 +49,16 @@ PenLock/
 - Never store raw stroke data after feature extraction — only the feature vector
 - All user-facing endpoints must be HTTPS only (App Engine enforces this in production)
 - The DTW threshold is a tunable parameter — do not hardcode it deep in logic
+
+## Documentation Convention — Member Folders
+
+Each team member has a personal folder under `docs/version1/members/<handle>/`. Members only write inside their own folder. This prevents merge conflicts on shared docs — never edit another member's folder.
+
+Current members: `ykim`, `atotah`, `alin`.
+
+To add a new member: create `docs/version1/members/<handle>/NOTES.md` and add them to this list.
+
+---
 
 ## Current Focus
 
