@@ -15,15 +15,19 @@
 
             height:100%;
         }
+        #canvas{
+            border: 3px solid black
+        }
     </style>
 
 
 </head>
 <body>
-    <canvas id="canvas" style="border:1px solid #000000;">
-    </canvas>   <script src="{{ url_for('static', filename='js/canvas.js') }}"></script>
+    <canvas id="canvas">
+    </canvas>  <script src="{{ url_for('static', filename='js/canvas.js') }}"></script>
 
         <div class="nav">
+
       <button>Open!</button>
     </div>
 </body>

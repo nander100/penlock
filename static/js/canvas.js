@@ -1,21 +1,28 @@
-let startTime = null;
+let signatureStartTime = null;
 let lastPenDownTime = null;
 let penUpTime = null;
-let signatureFeatures = [];
+let signatureSet = [];
+let currentSignature=[];
+let currentSegment=[];
+
+let drawingSegment = false
+let drawingSignature = false
 let paint = false;
 let numberOfPenLifts=0
 let liftTimer=null
+let signatureDuration = 0;
 let signatureComplete = false; // add at top
 const canvas = document.querySelector('#canvas');
 const ctx = canvas.getContext('2d');
 let coord = {x: 0, y: 0}; // add at top
 
 class Point{
-  constructor(newx,newy){
+  constructor(newx,newy, time=null){
     this.x=newx;
     this.y=newy;
-    this.timestamp=null
+    this.timestamp=time
   }
+
 }
 // Load
 window.addEventListener('load', () => {
@@ -41,17 +48,32 @@ function getPosition(event) {
     return new Point(coord.x,coord.y)
 }
 
-function startPainting(event) {
+function startPainting(event) { 
     if (event.pointerType === 'touch') return;
     if (signatureComplete) return;
     clearTimeout(liftTimer)
-    startTime = Date.now();
+
+    if (!signatureStartTime) {
+        signatureStartTime = Date.now(); // only set on first down
+        drawingSignature=true;
+    }
+    drawingSegment=true;
+
     paint = true;
     getPosition(event);
 }
 
 function startLiftTimer(event) {
     if (event.pointerType === 'touch') return;
+
+    drawingSegment=false;
+    currentSignature.push([...currentSegment])
+
+    console.log('currentSegment length:', currentSegment.length);  // check points
+    console.log('currentSignature length:', currentSignature.length);  // check segments
+
+
+    currentSegment=[]
 
     numberOfPenLifts++;
     lastPenDownTime = Date.now();
@@ -61,8 +83,17 @@ function startLiftTimer(event) {
     }, 2000);
 }
 
-function clearSign(){
+async function clearSign(){
+    signDuration=Date.now()-signatureStartTime-2000;
+
+    signatureSet.push([currentSignature])
+    currentSignature=[]
+
+    console.log('signatureset length:', signatureSet.length);  // check segments
+
+    signatureStartTime=null;
     console.log("clearSign called");
+    
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
@@ -74,7 +105,32 @@ function clearSign(){
 
     paint=true;
     signatureComplete=false;
-  
+
+    if(signatureSet.length==3){
+      const response = await fetch('/getSignatureSet',{
+        method:"POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ signatureSet })
+        });
+        const data = await response.json();
+        console.log(data);
+        signatureSet = []; // clear after sending
+    
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      setTimeout(() => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }, 500);
+
+      signatureSet=[]
+    }else{
+          ctx.fillStyle = 'rgba(0, 0, 255, 0.3)';
+
+    }
 }
 
 function sketch(event) {
@@ -92,4 +148,6 @@ function sketch(event) {
     getPosition(event);
     ctx.lineTo(coord.x, coord.y);
     ctx.stroke();
+    newPoint= new Point(coord.x,coord.y,Date.now())
+    currentSegment.push(newPoint);
 }
