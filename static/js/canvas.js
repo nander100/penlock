@@ -1,88 +1,95 @@
-//This is taken from w3schools
+let startTime = null;
+let lastPenDownTime = null;
+let penUpTime = null;
+let signatureFeatures = [];
+let paint = false;
+let numberOfPenLifts=0
+let liftTimer=null
+let signatureComplete = false; // add at top
+const canvas = document.querySelector('#canvas');
+const ctx = canvas.getContext('2d');
+let coord = {x: 0, y: 0}; // add at top
 
-// wait for the content of the window element
-// to load, then performs the operations.
-// This is considered best practice.
-window.addEventListener('load', () => {      
-    resize(); // Resizes the canvas once the window loads
-    document.addEventListener('mousedown', startPainting);
-    document.addEventListener('mouseup', stopPainting);
-    document.addEventListener('mousemove', sketch);
+class Point{
+  constructor(newx,newy){
+    this.x=newx;
+    this.y=newy;
+    this.timestamp=null
+  }
+}
+// Load
+window.addEventListener('load', () => {
+    resize();
+    canvas.addEventListener('pointerdown', startPainting);
+    canvas.addEventListener('pointerup', startLiftTimer);
+    canvas.addEventListener('pointermove', sketch);
 
-    document.addEventListener('touchstart', startPainting);
-    document.addEventListener('touchend', stopPainting);
-    document.addEventListener('touchmove', sketch);
-
+    canvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+    canvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
     window.addEventListener('resize', resize);
 });
-  
-const canvas = document.querySelector('#canvas');
- 
-// Context for the canvas for 2 dimensional operations
-const ctx = canvas.getContext('2d');
-  
-// Resizes the canvas to the available size of the window.
-function resize(){
-  ctx.canvas.width = 1000 ;
-  ctx.canvas.height = 300;
-}
-  
-// Stores the initial position of the cursor
-let coord = {x:0 , y:0}; 
- 
-// This is the flag that we are going to use to 
-// trigger drawing
-let paint = false;
-  
-// Updates the coordianates of the cursor when 
-// an event e is triggered to the coordinates where 
-// the said event is triggered.
-function getPosition(event) {
-    // if touch, use the first touch point
-    if (event.touches) {
-        coord.x = event.touches[0].clientX - canvas.offsetLeft;
-        coord.y = event.touches[0].clientY - canvas.offsetTop;
-    } else {
-        coord.x = event.clientX - canvas.offsetLeft;
-        coord.y = event.clientY - canvas.offsetTop;
-    }
+
+function resize() {
+    ctx.canvas.width = 1000;
+    ctx.canvas.height = 300;
 }
 
-// The following functions toggle the flag to start
-// and stop drawing
-function startPainting(event){
-  paint = true;
-  getPosition(event);
+//retunrs current pos in point objects
+function getPosition(event) {
+    coord.x = event.clientX - canvas.offsetLeft;
+    coord.y = event.clientY - canvas.offsetTop;
+    return new Point(coord.x,coord.y)
 }
-function stopPainting(){
-  paint = false;
+
+function startPainting(event) {
+    if (event.pointerType === 'touch') return;
+    if (signatureComplete) return;
+    clearTimeout(liftTimer)
+    startTime = Date.now();
+    paint = true;
+    getPosition(event);
 }
-  
-function sketch(event){
-  if (!paint) return;
-  ctx.beginPath();
-  
-  ctx.lineWidth = 5;
- 
-  // Sets the end of the lines drawn
-  // to a round shape.
-  ctx.lineCap = 'round';
-  
-  ctx.strokeStyle = 'black';
+
+function startLiftTimer(event) {
+    if (event.pointerType === 'touch') return;
+
+    numberOfPenLifts++;
+    lastPenDownTime = Date.now();
+
+    liftTimer = setTimeout(() => {
+        paint = false; signatureComplete =true; clearSign();
+    }, 2000);
+}
+
+function clearSign(){
+    console.log("clearSign called");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-  // The cursor to start drawing
-  // moves to this coordinate
-  ctx.moveTo(coord.x, coord.y);
- 
-  // The position of the cursor
-  // gets updated as we move the
-  // mouse around.
-  getPosition(event);
- 
-  // A line is traced from start
-  // coordinate to this coordinate
-  ctx.lineTo(coord.x , coord.y);
+    ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    setTimeout(() => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }, 500);
+
+    paint=true;
+    signatureComplete=false;
   
-  // Draws the line.
-  ctx.stroke();
+}
+
+function sketch(event) {
+    if (event.buttons === 0) return; 
+    if (event.pointerType === 'touch') return;
+    if(signatureComplete)return;
+    if (!paint) return;
+
+    lastPenDownTime = Date.now();
+    ctx.beginPath();
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = 'black';
+    ctx.moveTo(coord.x, coord.y);
+    getPosition(event);
+    ctx.lineTo(coord.x, coord.y);
+    ctx.stroke();
 }
