@@ -1,18 +1,31 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content=
+            "width=device-width, initial-scale=1.0">
+    
+    <title>
+        Penlock sign
+    </title>
 
-<title>
-    Penlock
-</title>
+    <style>
+        html,body{
+            overflow:hidden;
+
+            height:100%;
+        }
+    </style>
+
+
 </head>
-
 <body>
-    <canvas id="myCanvas" width="1000" height="300" style="border:1px solid #000000;">
-    </canvas>
-    <div class="nav">
+    <canvas id="canvas" style="border:1px solid #000000;">
+    </canvas>   <script src="{{ url_for('static', filename='js/canvas.js') }}"></script>
+
+        <div class="nav">
       <button>Open!</button>
     </div>
-
 </body>
+
 </html>
