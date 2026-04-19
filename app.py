@@ -64,7 +64,7 @@ def train_model():
         X = np.array(features)
         # scalers[stroke_index] = StandardScaler()          
         # X_scaled = scalers[stroke_index].fit_transform(X)        
-        clf = svm.OneClassSVM(kernel='rbf', nu=0.1)
+        clf = svm.OneClassSVM(kernel='rbf', nu=0.07)
         clf.fit(X)
         clfs[stroke_index] = clf
 
@@ -89,21 +89,21 @@ def set_password():
 @app.route('/unlocked')
 def unlocked():
     s=get_serial()
-    s.write(b'80\n')
+    s.write(b'90\n')
     return render_template('unlocked.html')
 
 
 @app.route('/plocking')
 def plocking():
     s=get_serial()
-    s.write(b'150\n')
+    s.write(b'0\n')
     return render_template('plocking.html')
 
 
 @app.route('/unplocking')
 def unplocking():
     s=get_serial()
-    s.write(b'150\n') #locked position is 150, unlocked position is 80
+    s.write(b'0\n') #locked position is 150, unlocked position is 80
     return render_template('unplocking.html')
 
 
@@ -150,6 +150,14 @@ def verify():
         ]
     }
     sig = Signature.from_payload(payload)
+
+    expected_strokes = len(clfs)
+    actual_strokes = sig.stroke_count
+    print(f'expected strokes: {expected_strokes}, actual: {actual_strokes}')
+    
+    if actual_strokes != expected_strokes:
+        print('rejected: wrong stroke count')
+        return jsonify({'genuine': False, 'strokes': [], 'reason': 'wrong stroke count'})
     
     stroke_results = []
     for k, segment in enumerate(sig.segments):
@@ -171,7 +179,7 @@ def verify():
         score = clfs[k].decision_function(features)[0]
         print(f'stroke {k}: score={score}')  # print raw score
 
-        is_stroke_genuine = bool(score > -0.15)
+        is_stroke_genuine = bool(score > -0.10)
         stroke_results.append(is_stroke_genuine)
         print(f'stroke {k}: {"genuine" if is_stroke_genuine else "forged"}')
         

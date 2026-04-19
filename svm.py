@@ -69,6 +69,20 @@ def stroke_straight_line(segment):
     end = segment.points[-1]
     return math.sqrt((end.x - start.x)**2 + (end.y - start.y)**2)
 
+def signature_span(sig):
+    first = sig.segments[0].points[0]
+    last = sig.segments[-1].points[-1]
+    return math.sqrt((last.x - first.x)**2 + (last.y - first.y)**2)
+
+def signature_total_length(sig):
+    total = 0
+    for segment in sig.segments:
+        points = segment.points
+        for i in range(len(points)-1):
+            dx = points[i+1].x - points[i].x
+            dy = points[i+1].y - points[i].y
+            total += math.sqrt(dx**2 + dy**2)
+    return total
 def process_signature(raw_signature): #returns featuers of a signature
     payload = {
         "strokes": [
@@ -86,9 +100,10 @@ def process_signature(raw_signature): #returns featuers of a signature
     
     sig_features = {
         'duration': sig.total_duration,
+        'span': signature_span(sig),
+        'length':signature_total_length(sig),
         
-    }
-    
+    }    
     accel = signature_acceleration_profile(sig)
     for key, val in accel.items():
         sig_features[key] = val

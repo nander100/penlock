@@ -154,7 +154,7 @@ function undoLastSignature() {
         signatureSet.pop();  // remove last signature
         const attemptLabel = document.getElementById('attempt-label');
         if (attemptLabel) {
-            attemptLabel.textContent = `(${signatureSet.length} / 3)`;
+            attemptLabel.textContent = `(${signatureSet.length} / 3+ 1)`;
         }
         console.log('removed last signature, remaining:', signatureSet.length);
     }
