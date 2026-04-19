@@ -3,9 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PenLock — Plocked</title>
+  <title>PenLock — Verify</title>
   <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    #close-btn { display: none; }
+  </style>
 </head>
 <body>
   <div class="safe-frame">
@@ -14,8 +17,11 @@
       <canvas id="canvas"></canvas>
       <p class="sig-label" id="verify-hint">~ Draw your signature to unlock</p>
     </div>
+    <a id="close-btn" href="/unlocked" style="width:100%; max-width:320px;">
+      <button class="btn btn-danger">Close Button</button>
+    </a>
   </div>
 
-  <script src="{{ url_for('static', filename='js/canvas.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/checkSignature.js') }}"></script>
 </body>
 </html>

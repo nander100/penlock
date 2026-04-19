@@ -4,7 +4,6 @@ let penUpTime = null;
 let signatureSet = [];
 let currentSignature = [];
 let currentSegment = [];
-
 let drawingSegment = false;
 let drawingSignature = false;
 let paint = false;
@@ -74,50 +73,62 @@ function startLiftTimer(event) {
   liftTimer = setTimeout(() => {
     paint = false;
     signatureComplete = true;
-    clearSign();
+    verifySignature();
   }, 1000);
 }
 
-async function clearSign() {
-  signatureDuration = Date.now() - signatureStartTime - 1000;
-  signatureSet.push([currentSignature]);
+async function verifySignature() {
+  const signatureToSend = [...currentSignature];
+
+  // Reset for next attempt
   currentSignature = [];
   signatureStartTime = null;
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  setTimeout(() => { ctx.clearRect(0, 0, canvas.width, canvas.height); }, 500);
-
   paint = true;
   signatureComplete = false;
 
-  // Update attempt counter if on set-password page
-  const attemptLabel = document.getElementById('attempt-label');
-  if (attemptLabel) {
-    attemptLabel.textContent = `(${signatureSet.length} / 3)`;
-  }
+  const hint = document.getElementById('verify-hint');
+  hint.textContent = '~ Verifying…';
 
-  if (signatureSet.length == 3) {
-    const response = await fetch('/getSignatureSet', {
+  // Flash while verifying
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = 'rgba(0, 200, 255, 0.15)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  setTimeout(() => { ctx.clearRect(0, 0, canvas.width, canvas.height); }, 400);
+
+  try {
+    const response = await fetch('/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ signatureSet })
+      body: JSON.stringify({ signature: signatureToSend })
     });
     const data = await response.json();
-    signatureSet = [];
 
-    if (data.redirect) {
-      window.location.href = data.redirect;
+    if (data.genuine) {
+      // Show green flash
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'rgba(0, 255, 0, 0.2)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      setTimeout(() => { ctx.clearRect(0, 0, canvas.width, canvas.height); }, 500);
+
+      hint.textContent = '~ Matched — safe unlocked!';
+
+      // Show the close button now that match is confirmed
+      document.getElementById('close-btn').style.display = 'block';
+
+    } else {
+      // Show red flash
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      setTimeout(() => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        hint.textContent = '~ No match — try again';
+      }, 500);
     }
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    setTimeout(() => { ctx.clearRect(0, 0, canvas.width, canvas.height); }, 500);
-    signatureSet = [];
-  } else {
-    ctx.fillStyle = 'rgba(0, 0, 255, 0.3)';
+  } catch (err) {
+    hint.textContent = '~ Error — check console';
+    console.error(err);
   }
 }
 

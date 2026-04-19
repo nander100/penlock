@@ -6,10 +6,6 @@
   <title>PenLock — Unlocked</title>
   <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  <style>
-    /* unlocked-specific: title takes up top half, buttons bottom half */
-    .safe-frame { justify-content: space-around; }
-  </style>
 </head>
 <body>
   <div class="safe-frame">
@@ -18,10 +14,19 @@
       <a href="/set-password" style="width:100%">
         <button class="btn btn-yellow">Set Password</button>
       </a>
-      <a href="/plocking" style="width:100%">
-        <button class="btn btn-pink">Lock Safe</button>
-      </a>
+      <button class="btn btn-pink" id="lock-btn" style="width:100%">Lock Safe</button>
     </div>
   </div>
+
+  <script>
+    document.getElementById('lock-btn').addEventListener('click', async () => {
+      try {
+        await fetch('/lock', { method: 'POST' });
+      } catch (e) {
+        console.log('Lock signal failed:', e);
+      }
+      window.location.href = '/plocking';
+    });
+  </script>
 </body>
 </html>
