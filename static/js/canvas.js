@@ -46,6 +46,7 @@ function getPosition(event) {
   return new Point(coord.x, coord.y);
 }
 
+
 function startPainting(event) {
   if (event.pointerType === 'touch') return;
   if (signatureComplete) return;
@@ -146,4 +147,15 @@ function sketch(event) {
   ctx.stroke();
   const newPoint = new Point(coord.x, coord.y, Date.now());
   currentSegment.push(newPoint);
+}
+
+function undoLastSignature() {
+    if (signatureSet.length > 0) {
+        signatureSet.pop();  // remove last signature
+        const attemptLabel = document.getElementById('attempt-label');
+        if (attemptLabel) {
+            attemptLabel.textContent = `(${signatureSet.length} / 3)`;
+        }
+        console.log('removed last signature, remaining:', signatureSet.length);
+    }
 }

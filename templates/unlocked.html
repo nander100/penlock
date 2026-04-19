@@ -11,8 +11,8 @@
   <div class="safe-frame">
     <h1 class="screen-title">Unplocked</h1>
     <div style="display:flex; flex-direction:column; align-items:center; gap:0.75rem; width:100%; max-width:320px;">
-      <a href="/set-password" style="width:100%">
-        <button class="btn btn-yellow">Set Password</button>
+      <a href="/set_password" style="width:100%">
+        <button class="btn btn-yellow" id="set-password-btn">Set Password</button>
       </a>
       <button class="btn btn-pink" id="lock-btn" style="width:100%">Lock Safe</button>
     </div>
@@ -26,6 +26,15 @@
         console.log('Lock signal failed:', e);
       }
       window.location.href = '/plocking';
+    });
+
+    document.getElementById('set-password-btn').addEventListener('click', async () => {
+      try {
+        await fetch('/lock', { method: 'POST' });
+      } catch (e) {
+        console.log('cant set password:', e);
+      }
+      window.location.href = '/set_password';
     });
   </script>
 </body>

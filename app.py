@@ -9,16 +9,7 @@ from sklearn.preprocessing import StandardScaler
 from src.signature_structure.signature import Signature
 ser = None  # don't open at startup
 
-def get_serial():
-    global ser
-    if ser is None or not ser.is_open:
-        try:
-            ser = serial.Serial('COM4', 9600, timeout=1)
-            time.sleep(2)
-        except serial.SerialException as e:
-            print(f"Could not open serial port: {e}")
-            return None
-    return ser
+
 
 def get_serial():
     global ser
@@ -82,6 +73,17 @@ def train_model():
 def index():
     return render_template('/set_password.html')
 
+# make sure this exists in app.py
+@app.route('/set_password')
+def set_password():
+    # clear old signatures
+    with open('signatures.json', 'w') as f:
+        json.dump([], f)
+    # reset model
+    global clfs, scalers
+    clfs = {}
+    scalers = {}
+    return render_template('set_password.html')
 @app.route('/unlocked')
 def unlocked():
     return render_template('unlocked.html')

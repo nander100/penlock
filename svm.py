@@ -63,6 +63,11 @@ def signature_acceleration_profile(sig):
         'max_deceleration': min(all_accelerations),
 
     }
+import math
+def stroke_straight_line(segment):
+    start = segment.points[0]
+    end = segment.points[-1]
+    return math.sqrt((end.x - start.x)**2 + (end.y - start.y)**2)
 
 def process_signature(raw_signature): #returns featuers of a signature
     payload = {
