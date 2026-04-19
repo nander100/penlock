@@ -80,23 +80,17 @@ def train_model():
 # --- Screen routes ---
 @app.route('/')
 def index():
-    return redirect('/unlocked')
+    return render_template('/set_password.html')
 
 @app.route('/unlocked')
 def unlocked():
     return render_template('unlocked.html')
 
-@app.route('/set-password')
-def set_password():
-    return render_template('set_password.html')
 
 @app.route('/plocking')
 def plocking():
     return render_template('plocking.html')
 
-@app.route('/checkSignature')
-def checkSignature():
-    return render_template('checkSignature.html')
 
 # --- API routes ---
 @app.route('/getSignatureSet', methods=['POST'])
@@ -105,7 +99,7 @@ def getSignatureSet():
     signatureSet=data['signatureSet']
     processSignatureDump(signatureSet)
 
-    return jsonify({'status':'success', 'redirect': '/checkSignature'}) #also brings user to the  checksignature page
+    return jsonify({'status':'success', 'redirect': '/plocking'}) #also brings user to the  checksignature page
 
 def processSignatureDump(signatureSet):
     with open('signatures.json', 'w') as f:
@@ -114,6 +108,7 @@ def processSignatureDump(signatureSet):
 def processSignatureToTest(signature):
     with open('signature_to_test.json', 'w') as f:
         json.dump(signature, f)
+
 
 scalers={}
 clfs={}

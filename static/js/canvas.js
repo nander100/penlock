@@ -89,36 +89,12 @@ async function clearSign() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   setTimeout(() => { ctx.clearRect(0, 0, canvas.width, canvas.height); }, 500);
 
-  paint = true;
-  signatureComplete = false;
 
   // Update attempt counter if on set-password page
   const attemptLabel = document.getElementById('attempt-label');
   if (attemptLabel) {
     attemptLabel.textContent = `(${signatureSet.length} / 3)`;
   }
-
-  if (signatureSet.length == 3) {
-    const response = await fetch('/getSignatureSet', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ signatureSet })
-    });
-    const data = await response.json();
-    signatureSet = [];
-
-    if (data.redirect) {
-      window.location.href = data.redirect;
-    }
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    setTimeout(() => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }, 500);
-
     paint=true;
     signatureComplete=false;
 

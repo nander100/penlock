@@ -36,15 +36,17 @@ window.addEventListener('load', () => {
 });
 
 function resize() {
-    ctx.canvas.width = 1000;
-    ctx.canvas.height = 300;
+    const rect = canvas.getBoundingClientRect();
+    ctx.canvas.width = rect.width;
+    ctx.canvas.height = rect.height;
 }
 
 //retunrs current pos in point objects
 function getPosition(event) {
-    coord.x = event.clientX - canvas.offsetLeft;
-    coord.y = event.clientY - canvas.offsetTop;
-    return new Point(coord.x,coord.y)
+    const rect = canvas.getBoundingClientRect();
+    coord.x = event.clientX - rect.left;
+    coord.y = event.clientY - rect.top;
+    return new Point(coord.x, coord.y);
 }
 
 function startPainting(event) { 
