@@ -1,4 +1,4 @@
-from flask import Flask, render_template,request,jsonify
+from flask import Flask, render_template, request, jsonify, redirect
 import json
 from sklearn import svm
 import numpy as np
@@ -20,6 +20,18 @@ def get_serial():
             return None
     return ser
 
+def get_serial():
+    global ser
+    if ser is None or not ser.is_open:
+        try:
+            ser = serial.Serial('COM4', 9600, timeout=1)
+            time.sleep(2)
+        except serial.SerialException as e:
+            print(f"Could not open serial port: {e}")
+            return None
+    return ser
+
+# --- Flask app ---
 app = Flask(__name__)
 
 scaler=StandardScaler()
@@ -65,11 +77,28 @@ def train_model():
         clf.fit(X)
         clfs[stroke_index] = clf
 
+# --- Screen routes ---
 @app.route('/')
 def index():
-    return render_template("index.html")
+    return redirect('/unlocked')
 
+@app.route('/unlocked')
+def unlocked():
+    return render_template('unlocked.html')
 
+@app.route('/set-password')
+def set_password():
+    return render_template('set_password.html')
+
+@app.route('/plocking')
+def plocking():
+    return render_template('plocking.html')
+
+@app.route('/checkSignature')
+def checkSignature():
+    return render_template('checkSignature.html')
+
+# --- API routes ---
 @app.route('/getSignatureSet', methods=['POST'])
 def getSignatureSet():
     data=request.get_json()

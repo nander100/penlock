@@ -1,6 +1,0 @@
----
-member: ykim
----
-
-# Notes — ykim
-
