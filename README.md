@@ -64,13 +64,15 @@ A signature is not just a static image — PenLock captures the **temporal dynam
 
 ## Project Status
 
-Early prototype. Current state:
+Early prototype — M1 mostly complete, M2 in progress.
 
 - [x] Flask server scaffolded
-- [x] Basic canvas rendered in browser
-- [ ] Stroke capture with timestamps and velocity
-- [ ] Enrollment flow (baseline storage)
-- [ ] Temporal signature comparison logic
+- [x] Canvas rendered in browser with pointer event capture
+- [x] Stroke segmentation: pen-down → pen-up arcs, 2-second lift timer
+- [x] 3-signature set collection and POST to `/getSignatureSet`
+- [x] `SignaturePoint`, `SignatureSegment`, `Signature` feature extraction classes (`src/signature_structure/`)
+- [ ] Payload schema reconciliation and `/enroll` / `/verify` endpoints
+- [ ] DTW-based temporal signature comparison
 - [ ] GCP deployment and verification service
 - [ ] WebSocket server → Arduino integration
 - [ ] Arduino lock actuation firmware

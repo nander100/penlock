@@ -5,8 +5,8 @@
 | Milestone | Description | Status |
 |---|---|---|
 | M0 — Scaffold | Flask server + canvas in browser | Done |
-| M1 — Stroke Engine | Full temporal capture in browser | In progress |
-| M2 — Backend Verification | Enrollment + DTW-based verify | Not started |
+| M1 — Stroke Engine | Full temporal capture in browser | In progress (mostly done) |
+| M2 — Backend Verification | Enrollment + DTW-based verify | Partial (feature extraction classes built) |
 | M3 — Arduino Integration | WebSocket unlock signal to hardware | Not started |
 | M4 — GCP Deployment | Cloud-hosted, HTTPS, Firestore | Not started |
 | M5 — Hardening | Replay defense, rate limiting, audit log | Not started |
@@ -15,16 +15,17 @@
 
 ## M1 — Stroke Engine
 
-**Deliverable:** Browser captures `(x, y, t, vx, vy)` per sample, packages into JSON, POSTs to backend.
+**Deliverable:** Browser captures `(x, y, timestamp)` per sample, packages into JSON, POSTs to backend. Velocity `(vx, vy, speed)` is derived at backend ingestion.
 
 Tasks:
-- Wire `pointerdown` / `pointermove` / `pointerup` events on canvas
-- Record timestamp on each sample
-- Compute velocity from consecutive samples
-- Normalize coordinates to canvas-relative `[0, 1]` range
-- Build stroke payload and POST to `/enroll` or `/verify`
+- [x] Wire `pointerdown` / `pointermove` / `pointerup` events on canvas
+- [x] Record timestamp on each sample
+- [x] Compute velocity from consecutive samples (at backend ingestion via `SignaturePoint`)
+- [ ] Normalize coordinates to canvas-relative `[0, 1]` range
+- [x] Build stroke payload and POST to backend (`/getSignatureSet`, 3-sample sets)
+- [ ] Reconcile frontend payload schema with `Signature.from_payload()` and wire to `/enroll` / `/verify`
 
-Exit criteria: Backend logs a well-formed stroke payload for a drawn signature.
+Exit criteria: Backend processes a well-formed stroke payload through `Signature.from_payload()` for a drawn signature.
 
 ---
 
@@ -33,11 +34,12 @@ Exit criteria: Backend logs a well-formed stroke payload for a drawn signature.
 **Deliverable:** `/enroll` stores a baseline; `/verify` returns `match: true/false`.
 
 Tasks:
-- Extract feature vector from stroke payload (duration, speed profile, stroke count, normalized path)
-- Store baseline per user ID (in-memory for local dev, Firestore for GCP)
-- Implement DTW comparison on speed profile sequences
-- Tune accept/reject threshold on real signing samples
-- Return structured response: `{ "match": bool, "score": float }`
+- [x] Feature extraction classes built: `SignaturePoint`, `SignatureSegment`, `Signature` in `src/signature_structure/`
+- [ ] Reconcile frontend payload schema and wire `Signature.from_payload()` into backend request path
+- [ ] Store baseline per user ID (in-memory for local dev, Firestore for GCP)
+- [ ] Implement DTW comparison on speed profile sequences
+- [ ] Tune accept/reject threshold on real signing samples
+- [ ] Return structured response: `{ "match": bool, "score": float }`
 
 Exit criteria: Genuine signature verifies successfully; a different person's signature is rejected.
 
