@@ -107,7 +107,7 @@ X = np.array([to_vector(f) for f in all_features])
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
-clf = svm.OneClassSVM(kernel='rbf', nu=0.1)
+clf = svm.OneClassSVM(kernel='rbf', nu=0.05, gamma=0.01)
 clf.fit(X_scaled)
 
 # ------------------------------------------------------------------ #
