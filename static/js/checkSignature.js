@@ -2,151 +2,179 @@ let signatureStartTime = null;
 let lastPenDownTime = null;
 let penUpTime = null;
 let signatureSet = [];
-let currentSignature = [];
-let currentSegment = [];
-let drawingSegment = false;
-let drawingSignature = false;
+let currentSignature=[];
+let currentSegment=[];
+let drawingSegment = false
+let drawingSignature = false
 let paint = false;
-let numberOfPenLifts = 0;
-let liftTimer = null;
+let numberOfPenLifts=0
+let liftTimer=null
 let signatureDuration = 0;
-let signatureComplete = false;
-
+let signatureComplete = false; // add at top
 const canvas = document.querySelector('#canvas');
 const ctx = canvas.getContext('2d');
-let coord = { x: 0, y: 0 };
+let coord = {x: 0, y: 0}; // add at top
 
-class Point {
-  constructor(newx, newy, time = null) {
-    this.x = newx;
-    this.y = newy;
-    this.timestamp = time;
+class Point{
+  constructor(newx,newy, time=null){
+    this.x=newx;
+    this.y=newy;
+    this.timestamp=time
   }
-}
 
+}
+// Load
 window.addEventListener('load', () => {
-  resize();
-  canvas.addEventListener('pointerdown', startPainting);
-  canvas.addEventListener('pointerup', startLiftTimer);
-  canvas.addEventListener('pointermove', sketch);
-  canvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
-  canvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
-  window.addEventListener('resize', resize);
+    resize();
+    canvas.addEventListener('pointerdown', startPainting);
+    canvas.addEventListener('pointerup', startLiftTimer);
+    canvas.addEventListener('pointermove', sketch);
+
+    canvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+    canvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    window.addEventListener('resize', resize);
 });
 
 function resize() {
-  ctx.canvas.width = canvas.offsetWidth || 480;
-  ctx.canvas.height = 200;
+    ctx.canvas.width = 1000;
+    ctx.canvas.height = 300;
 }
 
+//retunrs current pos in point objects
 function getPosition(event) {
-  coord.x = event.clientX - canvas.getBoundingClientRect().left;
-  coord.y = event.clientY - canvas.getBoundingClientRect().top;
-  return new Point(coord.x, coord.y);
+    coord.x = event.clientX - canvas.offsetLeft;
+    coord.y = event.clientY - canvas.offsetTop;
+    return new Point(coord.x,coord.y)
 }
 
-function startPainting(event) {
-  if (event.pointerType === 'touch') return;
-  if (signatureComplete) return;
-  clearTimeout(liftTimer);
+function startPainting(event) { 
+    if (event.pointerType === 'touch') return;
+    if (signatureComplete) return;
+    clearTimeout(liftTimer)
 
-  if (!signatureStartTime) {
-    signatureStartTime = Date.now();
-    drawingSignature = true;
-  }
-  drawingSegment = true;
-  paint = true;
-  getPosition(event);
+    if (!signatureStartTime) {
+        signatureStartTime = Date.now(); // only set on first down
+        drawingSignature=true;
+    }
+    drawingSegment=true;
+
+    paint = true;
+    getPosition(event);
 }
 
 function startLiftTimer(event) {
-  if (event.pointerType === 'touch') return;
+    if (event.pointerType === 'touch') return;
 
-  drawingSegment = false;
-  if (currentSegment.length > 0) {
-    currentSignature.push([...currentSegment]);
-  }
-  currentSegment = [];
-  numberOfPenLifts++;
-  lastPenDownTime = Date.now();
-
-  liftTimer = setTimeout(() => {
-    paint = false;
-    signatureComplete = true;
-    verifySignature();
-  }, 1000);
-}
-
-async function verifySignature() {
-  const signatureToSend = [...currentSignature];
-
-  // Reset for next attempt
-  currentSignature = [];
-  signatureStartTime = null;
-  paint = true;
-  signatureComplete = false;
-
-  const hint = document.getElementById('verify-hint');
-  hint.textContent = '~ Verifying…';
-
-  // Flash while verifying
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = 'rgba(0, 200, 255, 0.15)';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  setTimeout(() => { ctx.clearRect(0, 0, canvas.width, canvas.height); }, 400);
-
-  try {
-    const response = await fetch('/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ signature: signatureToSend })
-    });
-    const data = await response.json();
-
-    if (data.genuine) {
-      // Show green flash
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = 'rgba(0, 255, 0, 0.2)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      setTimeout(() => { ctx.clearRect(0, 0, canvas.width, canvas.height); }, 500);
-
-      hint.textContent = '~ Matched — safe unlocked!';
-
-      // Show the close button now that match is confirmed
-      document.getElementById('close-btn').style.display = 'block';
-
-    } else {
-      // Show red flash
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      setTimeout(() => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        hint.textContent = '~ No match — try again';
-      }, 500);
+    drawingSegment=false;
+    if (currentSegment.length > 0) {  // 👈 only push if not empty
+        currentSignature.push([...currentSegment]);
     }
 
-  } catch (err) {
-    hint.textContent = '~ Error — check console';
-    console.error(err);
-  }
+    console.log('currentSegment length:', currentSegment.length);  // check points
+    console.log('currentSignature length:', currentSignature.length);  // check segments
+
+
+    currentSegment=[]
+
+    numberOfPenLifts++;
+    lastPenDownTime = Date.now();
+
+    liftTimer = setTimeout(() => {
+        paint = false; signatureComplete =true; verifySignature();
+    }, 1000);
+}
+
+async function clearSign(){
+
+    signDuration=Date.now()-signatureStartTime-1000;
+
+    signatureSet.push([currentSignature])
+    currentSignature=[]
+
+    console.log('signatureset length:', signatureSet.length);  // check segments
+
+    signatureStartTime=null;
+    console.log("clearSign called");
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    setTimeout(() => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }, 500);
+
+    paint=true;
+    signatureComplete=false;
+
+    await verifySignature();
+
+    if(signatureSet.length==1){
+      const response = await fetch('/getSignatureSet',{
+        method:"POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ signatureSet })
+        });
+        const data = await response.json();
+        console.log(data);
+        signatureSet = []; // clear after sending
+
+        if (data.redirect) {
+            window.location.href = data.redirect;  // age
+        }
+            
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      setTimeout(() => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }, 500);
+
+      signatureSet=[]
+    }else{
+          ctx.fillStyle = 'rgba(0, 0, 255, 0.3)';
+
+    }
 }
 
 function sketch(event) {
-  if (event.buttons === 0) return;
-  if (event.pointerType === 'touch') return;
-  if (signatureComplete) return;
-  if (!paint) return;
+    if (event.buttons === 0) return; 
+    if (event.pointerType === 'touch') return;
+    if(signatureComplete)return;
+    if (!paint) return;
 
-  lastPenDownTime = Date.now();
-  ctx.beginPath();
-  ctx.lineCap = 'round';
-  ctx.lineWidth = 5;
-  ctx.strokeStyle = 'black';
-  ctx.moveTo(coord.x, coord.y);
-  getPosition(event);
-  ctx.lineTo(coord.x, coord.y);
-  ctx.stroke();
-  const newPoint = new Point(coord.x, coord.y, Date.now());
-  currentSegment.push(newPoint);
+    lastPenDownTime = Date.now();
+    ctx.beginPath();
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = 'black';
+    ctx.moveTo(coord.x, coord.y);
+    getPosition(event);
+    ctx.lineTo(coord.x, coord.y);
+    ctx.stroke();
+    newPoint= new Point(coord.x,coord.y,Date.now())
+    currentSegment.push(newPoint);
+}
+
+async function verifySignature() {
+    const signatureToSend = [...currentSignature];  // copy before it clears
+    
+    const response = await fetch('/verify', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ signature: signatureToSend })
+    });
+    const data = await response.json();
+    
+    if (data.genuine) {
+        console.log('real!');
+        document.getElementById('result').innerText = 'real!';
+    } else {
+        console.log('fake!');
+        document.getElementById('result').innerText = 'fake!';
+    }
 }

@@ -114,11 +114,43 @@ async function clearSign() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    setTimeout(() => { ctx.clearRect(0, 0, canvas.width, canvas.height); }, 500);
-    signatureSet = [];
-  } else {
-    ctx.fillStyle = 'rgba(0, 0, 255, 0.3)';
-  }
+
+    setTimeout(() => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }, 500);
+
+    paint=true;
+    signatureComplete=false;
+
+    if(signatureSet.length==4){
+      const response = await fetch('/getSignatureSet',{
+        method:"POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ signatureSet })
+        });
+        const data = await response.json();
+        console.log(data);
+        signatureSet = []; // clear after sending
+
+        if (data.redirect) {
+            window.location.href = data.redirect; 
+        }
+            
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      setTimeout(() => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }, 500);
+
+      signatureSet=[]
+    }else{
+          ctx.fillStyle = 'rgba(0, 0, 255, 0.3)';
+
+    }
 }
 
 function sketch(event) {

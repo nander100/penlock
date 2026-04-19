@@ -81,6 +81,7 @@ def process_signature(raw_signature): #returns featuers of a signature
     
     sig_features = {
         'duration': sig.total_duration,
+        
     }
     
     accel = signature_acceleration_profile(sig)
