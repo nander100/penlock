@@ -108,7 +108,7 @@ async function clearSign(){
     paint=true;
     signatureComplete=false;
 
-    if(signatureSet.length==3){
+    if(signatureSet.length==8){
       const response = await fetch('/getSignatureSet',{
         method:"POST",
         headers: {'Content-Type': 'application/json'},
