@@ -27,6 +27,22 @@ app = Flask(__name__)
 
 scaler=StandardScaler()
 
+import math
+
+def stroke_length(segment):
+    points = segment.points
+    total = 0
+    for i in range(len(points)-1):
+        dx = points[i+1].x - points[i].x
+        dy = points[i+1].y - points[i].y
+        total += math.sqrt(dx**2 + dy**2)
+    return total
+
+def stroke_span(segment):
+    start = segment.points[0]
+    end = segment.points[-1]
+    return math.sqrt((end.x - start.x)**2 + (end.y - start.y)**2)
+
 def train_model():
     global clfs
     with open('signatures.json', 'r') as f:
@@ -47,8 +63,13 @@ def train_model():
             for k, segment in enumerate(sig.segments):
                 speeds = [p.speed for p in segment.points[1:]]
                 accel = [speeds[i+1] - speeds[i] for i in range(len(speeds)-1)]
+
+                length = stroke_length(segment)
+                span = stroke_span(segment)
+                straightness = span / length if length > 0 else 0        
                 
                 features = [
+                    span,
                     segment.duration,
                     segment.mean_speed,
                     segment.peak_speed,
@@ -61,11 +82,14 @@ def train_model():
                 stroke_features[k].append(features)
     
     for stroke_index, features in stroke_features.items():
+
         X = np.array(features)
-        # scalers[stroke_index] = StandardScaler()          
-        # X_scaled = scalers[stroke_index].fit_transform(X)        
-        clf = svm.OneClassSVM(kernel='rbf', nu=0.07)
-        clf.fit(X)
+        print(f'stroke {stroke_index}: training on {X.shape[0]} samples, {X.shape[1]} features')
+
+        scalers[stroke_index] = StandardScaler()          
+        X_scaled = scalers[stroke_index].fit_transform(X)        
+        clf = svm.OneClassSVM(kernel='rbf', nu=0.1)
+        clf.fit(X_scaled)
         clfs[stroke_index] = clf
 
 # --- Screen routes ---
@@ -103,7 +127,7 @@ def plocking():
 @app.route('/unplocking')
 def unplocking():
     s=get_serial()
-    s.write(b'0\n') #locked position is 150, unlocked position is 80
+    s.write(b'0\n')
     return render_template('unplocking.html')
 
 
@@ -167,16 +191,21 @@ def verify():
         speeds = [p.speed for p in segment.points[1:]]
         accel = [speeds[i+1] - speeds[i] for i in range(len(speeds)-1)]
         
+        length = stroke_length(segment)
+        span = stroke_span(segment)
+        straightness = span / length if length > 0 else 0
+
         features = np.array([[
+            span,
             segment.duration,
             segment.mean_speed,
             segment.peak_speed,
             max(accel) if accel else 0,
             min(accel) if accel else 0,
         ]])
-        # features_scaled = scalers[k].transform(features)  
+        features_scaled = scalers[k].transform(features)  
         
-        score = clfs[k].decision_function(features)[0]
+        score = clfs[k].decision_function(features_scaled)[0]
         print(f'stroke {k}: score={score}')  # print raw score
 
         is_stroke_genuine = bool(score > -0.10)

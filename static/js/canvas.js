@@ -94,12 +94,12 @@ async function clearSign() {
   // Update attempt counter if on set-password page
   const attemptLabel = document.getElementById('attempt-label');
   if (attemptLabel) {
-    attemptLabel.textContent = `(${signatureSet.length} / 3)`;
+    attemptLabel.textContent = `(${signatureSet.length} / 6)`;
   }
     paint=true;
     signatureComplete=false;
 
-    if(signatureSet.length==4){
+    if(signatureSet.length==6){
       const response = await fetch('/getSignatureSet',{
         method:"POST",
         headers: {'Content-Type': 'application/json'},
@@ -154,7 +154,7 @@ function undoLastSignature() {
         signatureSet.pop();  // remove last signature
         const attemptLabel = document.getElementById('attempt-label');
         if (attemptLabel) {
-            attemptLabel.textContent = `(${signatureSet.length} / 3+ 1)`;
+            attemptLabel.textContent = `(${signatureSet.length} / 6)`;
         }
         console.log('removed last signature, remaining:', signatureSet.length);
     }
