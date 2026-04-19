@@ -5,7 +5,8 @@ import numpy as np
 import serial
 from svm import process_signature
 import time
-
+from sklearn.preprocessing import StandardScaler
+from src.signature_structure.signature import Signature
 ser = None  # don't open at startup
 
 def get_serial():
@@ -21,20 +22,48 @@ def get_serial():
 
 app = Flask(__name__)
 
+scaler=StandardScaler()
+
 def train_model():
-    global clf
+    global clfs
     with open('signatures.json', 'r') as f:
         data = json.load(f)
     
-    X = []
+    stroke_features = {}
+    
     for raw_signature in data:
         for segment_group in raw_signature:
-            features = process_signature(segment_group)
-            vector = list(features.values())
-            X.append(vector)
+            payload = {
+                "strokes": [
+                    {"points": [{"t": p['timestamp'], "x": p['x'], "y": p['y']} for p in segment]}
+                    for segment in segment_group
+                ]
+            }
+            sig = Signature.from_payload(payload)
+            
+            for k, segment in enumerate(sig.segments):
+                speeds = [p.speed for p in segment.points[1:]]
+                accel = [speeds[i+1] - speeds[i] for i in range(len(speeds)-1)]
+                
+                features = [
+                    segment.duration,
+                    segment.mean_speed,
+                    segment.peak_speed,
+                    max(accel) if accel else 0,
+                    min(accel) if accel else 0,
+                ]
+                
+                if k not in stroke_features:
+                    stroke_features[k] = []
+                stroke_features[k].append(features)
     
-    clf = svm.OneClassSVM(kernel='rbf', nu=0.25)
-    clf.fit(X)
+    for stroke_index, features in stroke_features.items():
+        X = np.array(features)
+        # scalers[stroke_index] = StandardScaler()          
+        # X_scaled = scalers[stroke_index].fit_transform(X)        
+        clf = svm.OneClassSVM(kernel='rbf', nu=0.1)
+        clf.fit(X)
+        clfs[stroke_index] = clf
 
 @app.route('/')
 def index():
@@ -57,42 +86,58 @@ def processSignatureToTest(signature):
     with open('signature_to_test.json', 'w') as f:
         json.dump(signature, f)
 
-clf = None  # global model
+scalers={}
+clfs={}
 @app.route('/checkSignature')
 def checkSignature():
     return render_template("checkSignature.html")
 
 
-
 @app.route('/verify', methods=['POST'])
 def verify():
-    global clf
-    if clf is None:
+    global clfs,scalers 
+    if not clfs:
         train_model()
     
     data = request.get_json()
-    raw_signature = data['signature']  # [[segment1, segment2]]
-    # unwrap if needed
+    raw_signature = data['signature']
     if isinstance(raw_signature[0][0], list):
         raw_signature = raw_signature[0]
     
-    features = process_signature(raw_signature)
-    vector = np.array([list(features.values())])
-    result = clf.predict(vector)
-    is_genuine = bool(result[0] == 1)  # convert numpy bool to Python bool
-
-    s = get_serial()
-    if s:
-        s.write(b'real\n' if is_genuine else b'fake\n')  # b'' for bytes
-    else:
-        print("Serial not available")
+    payload = {
+        "strokes": [
+            {"points": [{"t": p['timestamp'], "x": p['x'], "y": p['y']} for p in segment]}
+            for segment in raw_signature
+        ]
+    }
+    sig = Signature.from_payload(payload)
     
-    
-    return jsonify({'genuine': is_genuine})
+    stroke_results = []
+    for k, segment in enumerate(sig.segments):
+        if k not in clfs:
+            continue
+        
+        speeds = [p.speed for p in segment.points[1:]]
+        accel = [speeds[i+1] - speeds[i] for i in range(len(speeds)-1)]
+        
+        features = np.array([[
+            segment.duration,
+            segment.mean_speed,
+            segment.peak_speed,
+            max(accel) if accel else 0,
+            min(accel) if accel else 0,
+        ]])
+        # features_scaled = scalers[k].transform(features)  
+        
+        score = clfs[k].decision_function(features)[0]
+        print(f'stroke {k}: score={score}')  # print raw score
 
-# def getGenuineOrNot(signature):
-#     with open('signature_to_test.json', 'w') as f:
-#         json.dump(signature, f)
+        is_stroke_genuine = bool(score > -0.15)
+        stroke_results.append(is_stroke_genuine)
+        print(f'stroke {k}: {"genuine" if is_stroke_genuine else "forged"}')
+        
+    is_genuine = all(stroke_results)
+    return jsonify({'genuine': is_genuine, 'strokes': stroke_results})
 
 
 
