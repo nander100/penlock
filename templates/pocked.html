@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PenLock — Plocked</title>
+  <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="safe-frame">
+    <h1 class="screen-title">Plocked</h1>
+    <div class="sig-box">
+      <canvas id="canvas-verify"></canvas>
+      <p class="sig-label" id="verify-hint">~ Draw your signature to unlock</p>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="verify-clear">Clear</button>
+      <button class="btn" id="verify-submit">Verify</button>
+    </div><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PenLock — Plocked</title>
+  <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="safe-frame">
+    <h1 class="screen-title" style="font-size:20px;">Plocked</h1>
+    <div class="sig-box">
+      <canvas id="canvas-verify"></canvas>
+      <p class="sig-label" id="verify-hint">~ Draw your signature to unlock</p>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="verify-clear">Clear</button>
+      <button class="btn" id="verify-submit">Verify</button>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/canvas.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/verify.js') }}"></script>
+</body>
+</html>
+  </div>
+  <p class="hint"><span class="dot dot-red"></span>Safe is locked</p>
+
+  <script src="{{ url_for('static', filename='js/canvas.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/verify.js') }}"></script>
+</body>
+</html>
