@@ -73,6 +73,7 @@ def train_model():
 def index():
     return render_template('/set_password.html')
 
+#this needs to start in open position
 # make sure this exists in app.py
 @app.route('/set_password')
 def set_password():
@@ -84,18 +85,30 @@ def set_password():
     clfs = {}
     scalers = {}
     return render_template('set_password.html')
+
 @app.route('/unlocked')
 def unlocked():
+    s=get_serial()
+    s.write(b'80\n')
     return render_template('unlocked.html')
 
 
 @app.route('/plocking')
 def plocking():
+    s=get_serial()
+    s.write(b'150\n')
     return render_template('plocking.html')
 
 
+@app.route('/unplocking')
+def unplocking():
+    s=get_serial()
+    s.write(b'150\n') #locked position is 150, unlocked position is 80
+    return render_template('unplocking.html')
+
+
 # --- API routes ---
-@app.route('/getSignatureSet', methods=['POST'])
+@app.route('/getSignatureSet',methods=['POST'])
 def getSignatureSet():
     data=request.get_json()
     signatureSet=data['signatureSet']

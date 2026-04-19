@@ -107,13 +107,21 @@ async function verifySignature() {
     const data = await response.json();
 
     if (data.genuine) {
-        window.location.href = '/unlocked';
+        // flash green then redirect
+        ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        setTimeout(() => { window.location.href = '/unlocked'; }, 500);
     } else {
-        document.getElementById('result').innerText = 'Try again';
+        // flash red
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        setTimeout(() => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }, 500);
+
         signatureComplete = false;
         paint = true;
         currentSignature = [];
         currentSegment = [];
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 }
