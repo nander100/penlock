@@ -8,9 +8,20 @@ PenLock is a behavioral biometric lock system. Users enroll a handwritten signat
 
 ```
 PenLock/
-  app.py                    # Flask entry point
+  app.py                    # Flask entry point — serves frontend, /getSignatureSet endpoint
   templates/
     index.html              # Signature canvas UI
+  static/
+    js/
+      canvas.js             # Pointer event capture, stroke segmentation, 3-sample collection
+  src/
+    __init__.py
+    signature_structure/
+      __init__.py
+      signature_point.py    # SignaturePoint: (t, x, y, vx, vy, speed)
+      signature_segment.py  # SignatureSegment: one pen-down→pen-up arc + speed stats
+      signature.py          # Signature: full multi-segment signature + aggregate features
+  signatures.json           # Raw stroke data written by /getSignatureSet (dev only)
   docs/
     MISSION.md              # Permanent project mission (do not edit casually)
     version1/
@@ -20,9 +31,9 @@ PenLock/
       ROADMAP.md            # Milestones and exit criteria
       STATUS.md             # Current state, decisions log
       members/
-        ykim/NOTES.md       # ykim's personal working notes
         atotah/NOTES.md     # atotah's personal working notes
         alin/NOTES.md       # alin's personal working notes
+        achang/NOTES.md     # achang's personal working notes
   CLAUDE.md                 # This file
   README.md                 # Public-facing project overview
 ```
@@ -54,7 +65,7 @@ PenLock/
 
 Each team member has a personal folder under `docs/version1/members/<handle>/`. Members only write inside their own folder. This prevents merge conflicts on shared docs — never edit another member's folder.
 
-Current members: `ykim`, `atotah`, `alin`.
+Current members: `atotah`, `alin`, `achang`.
 
 To add a new member: create `docs/version1/members/<handle>/NOTES.md` and add them to this list.
 
@@ -62,6 +73,6 @@ To add a new member: create `docs/version1/members/<handle>/NOTES.md` and add th
 
 ## Current Focus
 
-M1 — Stroke Engine: implement pointer event capture on the canvas and build the stroke payload pipeline.
+M1 is substantially complete. Remaining M1 work: normalize coordinates and reconcile the frontend payload schema (`{x, y, timestamp}`) with `Signature.from_payload()` (`{t, x, y}` under `strokes/points`). Then move to M2: wire the `src/signature_structure/` module into the backend, implement `/enroll` and `/verify`, and build DTW comparison.
 
-See `docs/version1/PLANNING.md` for the full task breakdown.
+See `docs/version1/PLANNING.md` for the full task breakdown and `docs/version1/STATUS.md` for current state.
