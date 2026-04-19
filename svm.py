@@ -1,205 +1,145 @@
-from sklearn import svm
 import json
+
+import joblib
+import numpy as np
+from sklearn import svm
+from sklearn.model_selection import LeaveOneOut
+from sklearn.preprocessing import StandardScaler
+
 from src.signature_structure.signature import Signature
 
 
-#good metrics:
-#max_acccel
+FEATURE_KEYS = [
+    'duration',
+    'peak_speed_position',
+    'lowest_speed_position',
+    'max_speed',
+    'min_speed',
+    'peak_accel_position',
+    'peak_decel_position',
+    'max_acceleration',
+    'max_deceleration',
+]
 
 
-
-def normalize_speeds(speeds):
+def normalize_speeds(speeds: list[float]) -> list[float]:
+    if not speeds:
+        return []
     min_s = min(speeds)
     max_s = max(speeds)
     if max_s == min_s:
         return [0.0] * len(speeds)
     return [(s - min_s) / (max_s - min_s) for s in speeds]
 
-def speed_profile_features(speeds):
-    normalized = normalize_speeds(speeds)
-    peak_index = normalized.index(max(normalized))
-    n = len(normalized)
-    
-    return {
-        'peak_position': peak_index / n,        # where peak is 0.0-1.0
-        'end_speed': normalized[-1],             # how fast pen exits
-    }
 
-def signature_speed_profile(sig):
+def signature_speed_profile(sig: Signature) -> dict:
     all_speeds = []
     for segment in sig.segments:
-        speeds = [p.speed for p in segment.points[1:]]  # sip first point
-        all_speeds.extend(speeds)
-    
+        all_speeds.extend(p.speed for p in segment.points[1:])
+
     peak_index = all_speeds.index(max(all_speeds))
     n = len(all_speeds)
-    
     return {
-        'peak_speed_position': peak_index / n,  # where peak occurs 0-1
-        'lowest_speed_position': all_speeds.index(min(all_speeds)) / n,  
+        'peak_speed_position': peak_index / n,
+        'lowest_speed_position': all_speeds.index(min(all_speeds)) / n,
         'max_speed': max(all_speeds),
         'min_speed': min(all_speeds),
     }
 
-def signature_acceleration_profile(sig):
+
+def signature_acceleration_profile(sig: Signature) -> dict:
     all_accelerations = []
     for segment in sig.segments:
-        points = segment.points
-        speeds = [p.speed for p in segment.points[1:]]  #skip first
-        accelerations = [
-            speeds[i+1] - speeds[i]
-            for i in range(len(speeds)-1)
-        ]
-        all_accelerations.extend(accelerations)
-    
+        speeds = [p.speed for p in segment.points[1:]]
+        all_accelerations.extend(
+            speeds[i + 1] - speeds[i] for i in range(len(speeds) - 1)
+        )
+
+    if not all_accelerations:
+        return {
+            'peak_accel_position': 0.0,
+            'peak_decel_position': 0.0,
+            'max_acceleration': 0.0,
+            'max_deceleration': 0.0,
+        }
+
     normalized = normalize_speeds(all_accelerations)
-    peak_index = normalized.index(max(normalized))
     n = len(normalized)
-    
     return {
-        'peak_accel_position': peak_index / n,
-        'peak_decel_position': normalized.index(min(normalized)) / n, 
+        'peak_accel_position': normalized.index(max(normalized)) / n,
+        'peak_decel_position': normalized.index(min(normalized)) / n,
         'max_acceleration': max(all_accelerations),
         'max_deceleration': min(all_accelerations),
-
     }
 
-def process_signature(raw_signature): #returns featuers of a signature
+
+def process_signature(raw_signature) -> dict:
+    if isinstance(raw_signature[0][0], list):
+        raw_signature = raw_signature[0]
     payload = {
         "strokes": [
-            {
-                "points": [
-                    {"t": p['timestamp'], "x": p['x'], "y": p['y']}
-                    for p in segment
-                ]
-            }
+            {"points": [{"t": p['timestamp'], "x": p['x'], "y": p['y']} for p in segment]}
             for segment in raw_signature
         ]
     }
-    
     sig = Signature.from_payload(payload)
-    
-    sig_features = {
-        'duration': sig.total_duration,
-    }
-    
-    accel = signature_acceleration_profile(sig)
-    for key, val in accel.items():
-        sig_features[key] = val
-    
-    speed = signature_speed_profile(sig)
-    for key, val in speed.items():
-        sig_features[key] = val
-    
-    return sig_features
+
+    features = {'duration': sig.total_duration}
+    features.update(signature_acceleration_profile(sig))
+    features.update(signature_speed_profile(sig))
+    return features
 
 
-import numpy as np
-'''
-
-all_features=[]
-# build feature vectors from all_features
-X = []
-for sig_features in all_features:
-    vector = [
-        sig_features['duration'],
-        sig_features['peak_speed_position'],
-        sig_features['lowest_speed_position'],
-        sig_features['max_speed'],
-        sig_features['min_speed'],
-        sig_features['peak_accel_position'],
-        sig_features['peak_decel_position'],
-        sig_features['max_acceleration'],
-        sig_features['max_deceleration'],
-    ]
-    X.append(vector)
-
-X = np.array(X)
-
-# one class SVM - only needs genuine signatures, no forged needed
-clf = svm.OneClassSVM(kernel='rbf', nu=0.1)
-clf.fit(X)
+def to_vector(features: dict) -> list[float]:
+    return [features[k] for k in FEATURE_KEYS]
 
 
-with open('signature_to_test.json', 'r') as f:
+# ------------------------------------------------------------------ #
+# Training
+# ------------------------------------------------------------------ #
+
+with open('signatures.json', 'r') as f:
     data = json.load(f)
-signature_to_test = data[0] 
-check_sig_features=process_signature(signature_to_test)
 
-def predict_signature(new_sig_features):
-    vector = np.array([[
-        new_sig_features['duration'],
-        new_sig_features['peak_speed_position'],
-        new_sig_features['lowest_speed_position'],
-        new_sig_features['max_speed'],
-        new_sig_features['min_speed'],
-        new_sig_features['peak_accel_position'],
-        new_sig_features['peak_decel_position'],
-        new_sig_features['max_acceleration'],
-        new_sig_features['max_deceleration'],
-    ]])
-    
-    result = clf.predict(vector)
+all_features = [process_signature(raw) for raw in data]
+X = np.array([to_vector(f) for f in all_features])
+
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+clf = svm.OneClassSVM(kernel='rbf', nu=0.1)
+clf.fit(X_scaled)
+
+# ------------------------------------------------------------------ #
+# Leave-one-out cross-validation (false-reject rate on own signatures)
+# ------------------------------------------------------------------ #
+
+loo = LeaveOneOut()
+false_rejects = 0
+for train_idx, test_idx in loo.split(X_scaled):
+    cv_clf = svm.OneClassSVM(kernel='rbf', nu=0.1)
+    cv_clf.fit(X_scaled[train_idx])
+    if cv_clf.predict(X_scaled[test_idx])[0] == -1:
+        false_rejects += 1
+
+frr = false_rejects / len(X_scaled)
+print(f'Leave-one-out false-reject rate: {frr:.1%} ({false_rejects}/{len(X_scaled)})')
+
+# ------------------------------------------------------------------ #
+# Persist model
+# ------------------------------------------------------------------ #
+
+joblib.dump({'clf': clf, 'scaler': scaler}, 'penlock_model.pkl')
+print('Model saved to penlock_model.pkl')
+
+
+# ------------------------------------------------------------------ #
+# Prediction helper (used by app.py at verify time)
+# ------------------------------------------------------------------ #
+
+def predict_signature(raw_signature) -> str:
+    features = process_signature(raw_signature)
+    vector = np.array([to_vector(features)])
+    vector_scaled = scaler.transform(vector)
+    result = clf.predict(vector_scaled)
     return 'genuine' if result[0] == 1 else 'forged'
-
-predictions = clf.predict(X)
-
-
-# import statistics
-
-# all_features = []
-
-# for i, raw_signature in enumerate(data):
-#     for j, segment_group in enumerate(raw_signature):
-#         payload = {
-#             "strokes": [
-#                 {
-#                     "points": [
-#                         {"t": p['timestamp'], "x": p['x'], "y": p['y']}
-#                         for p in segment
-#                     ]
-#                 }
-#                 for segment in segment_group
-#             ]
-#         }
-        
-#         sig = Signature.from_payload(payload)
-
-#         sig_features = {
-#             'duration': sig.total_duration,
-#             #'mean_speed': sig.mean_speed,
-#             #'stroke_count': sig.stroke_count,
-#         }
-
-#         accel = signature_acceleration_profile(sig)
-#         for key, val in accel.items():
-#             sig_features[key] = val
-
-#         speed = signature_speed_profile(sig)
-#         for key, val in speed.items():
-#             sig_features[key] = val
-
-#         all_features.append(sig_features)
-
-# # compute variance and mean for each feature
-# print('\n--- Variance and Mean across signatures ---')
-# stdevs = {}
-# keys = all_features[0].keys()
-# for key in keys:
-#     values = [f[key] for f in all_features]
-#     if len(values) > 1:
-#         var = statistics.stdev(values)
-#         mean = statistics.mean(values)
-#         stdevs[key] = var
-#         coeffVariance=var/(mean+0.00000001)
-#         print(f'  {key}: mean={mean:.4f}, coeffVariance={var:.6f}')
-
-# # print least varying metric
-# least_varying = min(stdevs, key=stdevs.get)
-# filtered_variances = {k: v for k, v in stdevs.items() if k != 'stroke_count'}
-
-# sort by cv and get top 5 least varying
-# sorted_metrics = sorted(filtered_variances.items(), key=lambda x: x[1])
-
-#put these metrics into an svm
-'''
