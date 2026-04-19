@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content=
+            "width=device-width, initial-scale=1.0">
+    
+    <title>
+        Penlock plocked!
+    </title>
+
+    <h1>sign unlock signature</h1>
+
+    <style>
+        html,body{
+            overflow:hidden;
+
+            height:100%;
+        }
+        #canvas{
+            border: 3px solid red
+        }
+    </style>
+
+
+</head>
+<body>
+        <div id="result" style="font-size: 24px; margin-top: 20px;"></div>
+
+    <canvas id="canvas">
+    </canvas>  <script src="{{ url_for('static', filename='js/checkSignature.js') }}"></script>
+
+        <div class="nav">
+
+    </div>
+</body>
+
+</html>

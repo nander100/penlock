@@ -4,7 +4,6 @@ let penUpTime = null;
 let signatureSet = [];
 let currentSignature=[];
 let currentSegment=[];
-
 let drawingSegment = false
 let drawingSignature = false
 let paint = false;
@@ -81,11 +80,12 @@ function startLiftTimer(event) {
     lastPenDownTime = Date.now();
 
     liftTimer = setTimeout(() => {
-        paint = false; signatureComplete =true; clearSign();
+        paint = false; signatureComplete =true; verifySignature();
     }, 1000);
 }
 
 async function clearSign(){
+
     signDuration=Date.now()-signatureStartTime-1000;
 
     signatureSet.push([currentSignature])
@@ -108,7 +108,9 @@ async function clearSign(){
     paint=true;
     signatureComplete=false;
 
-    if(signatureSet.length==3){
+    await verifySignature();
+
+    if(signatureSet.length==1){
       const response = await fetch('/getSignatureSet',{
         method:"POST",
         headers: {'Content-Type': 'application/json'},
@@ -119,7 +121,7 @@ async function clearSign(){
         signatureSet = []; // clear after sending
 
         if (data.redirect) {
-            window.location.href = data.redirect; 
+            window.location.href = data.redirect;  // age
         }
             
 
@@ -156,4 +158,23 @@ function sketch(event) {
     ctx.stroke();
     newPoint= new Point(coord.x,coord.y,Date.now())
     currentSegment.push(newPoint);
+}
+
+async function verifySignature() {
+    const signatureToSend = [...currentSignature];  // copy before it clears
+    
+    const response = await fetch('/verify', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ signature: signatureToSend })
+    });
+    const data = await response.json();
+    
+    if (data.genuine) {
+        console.log('real!');
+        document.getElementById('result').innerText = 'real!';
+    } else {
+        console.log('fake!');
+        document.getElementById('result').innerText = 'fake!';
+    }
 }
