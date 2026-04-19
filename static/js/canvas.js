@@ -67,7 +67,9 @@ function startLiftTimer(event) {
     if (event.pointerType === 'touch') return;
 
     drawingSegment=false;
-    currentSignature.push([...currentSegment])
+    if (currentSegment.length > 0) {  // 👈 only push if not empty
+        currentSignature.push([...currentSegment]);
+    }
 
     console.log('currentSegment length:', currentSegment.length);  // check points
     console.log('currentSignature length:', currentSignature.length);  // check segments
@@ -80,11 +82,11 @@ function startLiftTimer(event) {
 
     liftTimer = setTimeout(() => {
         paint = false; signatureComplete =true; clearSign();
-    }, 2000);
+    }, 1000);
 }
 
 async function clearSign(){
-    signDuration=Date.now()-signatureStartTime-2000;
+    signDuration=Date.now()-signatureStartTime-1000;
 
     signatureSet.push([currentSignature])
     currentSignature=[]
@@ -106,7 +108,7 @@ async function clearSign(){
     paint=true;
     signatureComplete=false;
 
-    if(signatureSet.length==3){
+    if(signatureSet.length==5){
       const response = await fetch('/getSignatureSet',{
         method:"POST",
         headers: {'Content-Type': 'application/json'},
