@@ -8,23 +8,25 @@ Deliver a working end-to-end prototype: a user can enroll their signature via br
 
 ## Phases
 
-### Phase 0 — Scaffold (current)
+### Phase 0 — Scaffold
 - [x] Flask server running locally
 - [x] Canvas rendered in browser
-- [ ] Basic stroke capture (x, y, t) on canvas events
-- [ ] Display captured stroke data in console for inspection
+- [x] Basic stroke capture (x, y, t) on canvas events
+- [x] Display captured stroke data in console for inspection
 
 ### Phase 1 — Stroke Engine
-- [ ] Implement full stroke capture: `pointerdown`, `pointermove`, `pointerup`
-- [ ] Compute velocity at each sample point
+- [x] Implement full stroke capture: `pointerdown`, `pointermove`, `pointerup`
+- [x] Compute velocity at each sample point (derived at backend ingestion via `SignaturePoint`)
 - [ ] Normalize coordinate space (canvas-relative)
-- [ ] Package strokes into JSON payload
-- [ ] POST payload to backend `/enroll` and `/verify`
+- [x] Package strokes into JSON payload (`signatureSet` structure, 3 samples per set)
+- [x] POST payload to backend (`/getSignatureSet` — raw data pipeline live)
+- [ ] Wire `/enroll` and `/verify` endpoints (replace `/getSignatureSet` placeholder)
+- [ ] Reconcile frontend payload format (`{x, y, timestamp}`) with `Signature.from_payload()` schema (`{t, x, y}` under `strokes/points`)
 
 ### Phase 2 — Backend Verification
 - [ ] Flask endpoint `/enroll` — receive and store baseline feature vector
 - [ ] Flask endpoint `/verify` — receive live vector, run comparison
-- [ ] Feature extraction: duration, speed profile, stroke count, normalized path
+- [x] Feature extraction classes: `SignaturePoint`, `SignatureSegment`, `Signature` (in `src/signature_structure/`)
 - [ ] DTW-based similarity comparison
 - [ ] Threshold tuning (false accept rate vs. false reject rate)
 

@@ -24,23 +24,27 @@
 ### 1. Frontend (Browser)
 
 - HTML5 Canvas rendered over HTTPS
-- JavaScript captures pointer events: `(x, y, timestamp)` on each `pointermove` / `pointerdown` / `pointerup`
-- Computes per-sample velocity from consecutive coordinate deltas and time deltas
-- On submission, sends a structured stroke payload to the backend
+- JavaScript (`static/js/canvas.js`) captures pointer events: `(x, y, timestamp)` on each `pointermove` / `pointerdown` / `pointerup`
+- Segments strokes by pen-lift: each pen-down → pen-up arc is one segment
+- Detects signature completion via a 2-second lift timer
+- Collects 3 signature attempts into a set, then POSTs the set to `/getSignatureSet`
+- Velocity (`vx`, `vy`, `speed`) is **not computed on the frontend** — it is derived at backend ingestion time
 
-**Stroke payload shape:**
+**Frontend payload shape (sent to `/getSignatureSet`):**
 ```json
 {
-  "strokes": [
-    {
-      "points": [
-        { "x": 120, "y": 45, "t": 0, "vx": 0, "vy": 0 },
-        { "x": 125, "y": 48, "t": 16, "vx": 312.5, "vy": 187.5 }
+  "signatureSet": [
+    [
+      [
+        { "x": 120.0, "y": 45.0, "timestamp": 1776551432826 },
+        { "x": 125.0, "y": 48.0, "timestamp": 1776551432842 }
       ]
-    }
+    ]
   ]
 }
 ```
+
+Structure: `signatureSet [ signature [ segment [ point{x, y, timestamp} ] ] ]`
 
 ---
 
@@ -52,18 +56,33 @@ Responsibilities:
 - Accept verification requests (compare live vector against baseline)
 - On positive match, push unlock signal via WebSocket to the registered Arduino
 
-**Endpoints (planned):**
+**Endpoints:**
 
-| Method | Path | Purpose |
-|---|---|---|
-| `GET` | `/` | Serve frontend |
-| `POST` | `/enroll` | Store baseline signature |
-| `POST` | `/verify` | Verify signature, trigger lock on match |
-| `WS` | `/lock` | WebSocket connection from Arduino |
+| Method | Path | Status | Purpose |
+|---|---|---|---|
+| `GET` | `/` | Live | Serve frontend |
+| `POST` | `/getSignatureSet` | Live | Receive 3-signature set; currently writes raw data to `signatures.json` |
+| `POST` | `/enroll` | Planned | Store baseline feature vector per user |
+| `POST` | `/verify` | Planned | Compare live signature against baseline, trigger lock on match |
+| `WS` | `/lock` | Planned | WebSocket connection from Arduino |
 
 ---
 
-### 3. Signature Verification
+### 3. Signature Structure Module (`src/signature_structure/`)
+
+Python dataclasses that model and process raw stroke data. Built but not yet wired to any endpoint.
+
+| Class | File | Role |
+|---|---|---|
+| `SignaturePoint` | `signature_point.py` | Atomic sample: `(t, x, y, vx, vy, speed)`. Velocity derived from adjacent points at ingestion. |
+| `SignatureSegment` | `signature_segment.py` | One pen-down→pen-up arc. Exposes `duration`, `mean_speed`, `peak_speed`, `speed_std`, `speed_profile`. |
+| `Signature` | `signature.py` | Full multi-segment signature. Exposes `stroke_count`, `total_duration`, `speed_profiles`, `mean_speed`, `peak_speed`, `per_stroke_stats`. Parses from a `{"strokes": [{"points": [...]}]}` payload via `Signature.from_payload()`. |
+
+> **Open gap:** the frontend currently sends `{x, y, timestamp}` under `signatureSet/signature/segment` keys, but `Signature.from_payload()` expects `{t, x, y}` under `strokes/points` keys. These must be reconciled before the module can be wired to the backend.
+
+---
+
+### 4. Signature Verification
 
 Feature extraction from raw stroke data:
 - Total stroke duration
@@ -78,7 +97,7 @@ Comparison:
 
 ---
 
-### 4. WebSocket → Arduino
+### 5. WebSocket → Arduino
 
 - Arduino maintains a persistent WebSocket connection to the GCP backend
 - On verification success, backend sends `{ "cmd": "unlock" }`
@@ -86,18 +105,21 @@ Comparison:
 
 ---
 
-## Data Flow: Verification
+## Data Flow: Verification (target — not fully wired yet)
 
 ```
 1. User draws signature in browser
-2. JS captures strokes with timestamps and velocities
-3. Browser POSTs stroke payload to /verify over HTTPS
-4. Backend extracts feature vector from payload
-5. Backend compares feature vector against stored baseline
-6. If match: backend sends {"cmd": "unlock"} over WebSocket to Arduino
-7. Arduino actuates lock
-8. Backend returns 200 + result to browser
+2. JS captures strokes: (x, y, timestamp) per point, grouped into segments and signatures
+3. After 3 signatures collected, browser POSTs signatureSet to /enroll or /verify over HTTPS
+4. Backend ingests payload: derives (vx, vy, speed) at ingestion via SignaturePoint
+5. Backend extracts feature vector via Signature / SignatureSegment
+6. Backend compares feature vector against stored baseline (DTW on speed profiles)
+7. If match: backend sends {"cmd": "unlock"} over WebSocket to Arduino
+8. Arduino actuates lock
+9. Backend returns 200 + result to browser
 ```
+
+**Current state:** Steps 1–3 post to `/getSignatureSet` which writes raw data to `signatures.json`. Steps 4–9 are not yet wired.
 
 ---
 
